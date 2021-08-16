@@ -1,0 +1,7 @@
+{
+"type": "FeatureCollection",
+"name": "buffer",
+"features": [
+{ "type": "Feature", "properties": { }, "geometry": { "type": "GeometryCollection", "geometries": [ ] } }
+]
+}
