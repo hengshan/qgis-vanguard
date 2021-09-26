@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/Python_Spatial_Analysis" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>
