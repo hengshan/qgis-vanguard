@@ -58,7 +58,7 @@ website_action3.triggered.connect(open_website3)
 
 myMenu = QMenu( "&Hello SLA", iface.mainWindow().menuBar())
 actions = iface.mainWindow().menuBar().actions()
-lastAction = actions[-1]
+lastAction = actions[-1] 
 iface.mainWindow().menuBar().insertMenu(lastAction, myMenu)
 
 myMenu.addAction(website_action)

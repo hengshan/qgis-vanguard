@@ -14,7 +14,7 @@ xhrt =16*np.power(np.sin(t),3)
 yhrt = 13*np.cos(t)-5*np.cos(2*t)-2*np.cos(3*t)-np.cos(4*t)
 xhrt = xhrt *2300 + 27223
 yhrt = yhrt *2300 + 37158 
-
+ 
 # add points to layer
 for i in range(0,len(t)):
     f = QgsFeature()
@@ -27,12 +27,12 @@ QgsProject.instance().addMapLayer(vlayer)
 
 # change layer symbol
 # change size
-vlayer.renderer().symbol().symbolLayer(0).setSize(2)
-vlayer.triggerRepaint()
-
-# change color
-vlayer.renderer().symbol().symbolLayer(0).setColor(QColor.fromRgb(255,0,0))
-vlayer.triggerRepaint()
+#vlayer.renderer().symbol().symbolLayer(0).setSize(2)
+#vlayer.triggerRepaint()
+#
+## change color
+#vlayer.renderer().symbol().symbolLayer(0).setColor(QColor.fromRgb(255,0,0))
+#vlayer.triggerRepaint()
 
 # iternate all features to get feature id and geometry type
 # features = layer.getFeatures()
@@ -92,9 +92,9 @@ for i in range(0,len(t)):
 vlayer_polyline.updateExtents()
 QgsProject.instance().addMapLayer(vlayer_polyline)
 
-vlayer_polyline.renderer().symbol().symbolLayer(0).setWidth(1)
-vlayer_polyline.renderer().symbol().symbolLayer(0).setColor(QColor.fromRgb(255, 0, 0))
-vlayer_polyline.triggerRepaint()
+#vlayer_polyline.renderer().symbol().symbolLayer(0).setWidth(1)
+#vlayer_polyline.renderer().symbol().symbolLayer(0).setColor(QColor.fromRgb(255, 0, 0))
+#vlayer_polyline.triggerRepaint()
 
 # # Construct Geometry from coordinates
 # gPnt = QgsGeometry.fromPointXY(QgsPointXY(1,1)) 

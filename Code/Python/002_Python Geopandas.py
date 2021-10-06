@@ -35,7 +35,6 @@ schools_geoms = gpd.points_from_xy(x=schools_latlong["longitude"],
 schools = gpd.GeoDataFrame(schools_latlong, geometry=schools_geoms)
 central_schools_sf=schools.to_crs("epsg:3414")
 
-
 # get centroid
 sz['centroid'] = sz.geometry.centroid
 sz.set_geometry('centroid').plot('PLN_AREA_N', markersize=5)
