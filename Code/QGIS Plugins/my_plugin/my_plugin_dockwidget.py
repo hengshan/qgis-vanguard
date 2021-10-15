@@ -79,7 +79,7 @@ class MyPluginDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         self.comboBox_columns.addItems(np.arange(1,6,1).astype(str))
         self.mMapLayerComboBox.layerChanged['QgsMapLayer*'].connect(self.updateListWidget)
         self.btn_Map.clicked.connect(self.generateMap)
-        self.btn_download.clicked.connect(self.start_download)
+        self.btn_download.clicked.connect(self.start_download_error)
         self.btn_LoadData.clicked.connect(self.load_rainfall)
 
         #facility location
