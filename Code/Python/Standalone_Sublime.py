@@ -1,9 +1,9 @@
 import sys
 import os
 
-sys.path.append(r'C:\Program Files\QGIS 3.20.3\apps\qgis\python') #this is important for loading qgis library
-sys.path.append(r'C:\Program Files\QGIS 3.20.3\apps\qgis\python\plugins') #this is important for loading processing library 
-sys.path.append(r'c:\program files\qgis 3.20.3\apps\python39\lib\site-packages') #this is important for loading processing library 
+sys.path.append(r'C:\Program Files\QGIS 3.22.3\apps\qgis\python') #this is important for loading qgis library
+sys.path.append(r'C:\Program Files\QGIS 3.22.3\apps\qgis\python\plugins') #this is important for loading processing library 
+sys.path.append(r'c:\program files\qgis 3.22.3\apps\python39\lib\site-packages') #this is important for loading processing library 
 sys.path.append(r'C:\Users\user\AppData\Roaming\python\Python39\site-packages') #this is important for loading processing library 
 
 import qgis
