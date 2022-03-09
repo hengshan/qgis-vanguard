@@ -15,6 +15,7 @@ from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
                        QgsFeatureSink,
                        QgsProcessingException,
+                       QgsProcessingFeedback,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterField,
@@ -264,10 +265,13 @@ class SiteSelectionProcessingAlgorithm(QgsProcessingAlgorithm):
 
 
         # ######################## use pulp for site selection
-        Supermarkets_shp = self.convertToGeoPandas(c_layer)
-        Warehouses_shp = self.convertToGeoPandas(f_layer)
-        print(c_layer.name(),f_layer.name())
+        if feedback is None:
+            feedback = QgsProcessingFeedback()
 
+        Supermarkets_shp = self.convertToGeoPandas(c_layer, feedback)
+        Warehouses_shp = self.convertToGeoPandas(f_layer, feedback)
+        feedback.pushInfo(f"customer layer: {c_layer.name()}, facility layer: {f_layer.name()}")
+        
         # SETS
         SUPERMARKETS = list(Supermarkets_shp[C_ID])
         WAREHOUSES =  list(Warehouses_shp[F_ID])
@@ -303,26 +307,27 @@ class SiteSelectionProcessingAlgorithm(QgsProcessingAlgorithm):
 
         # The problem is solved using PuLP's choice of Solver
         prob.solve()
-        print("Status:", LpStatus[prob.status])
+        feedback.pushInfo(f"Status:: {LpStatus[prob.status]}")
 
         TOL = 0.0001
         results=[]
         for i in WAREHOUSES:
             if use_vars[i].varValue > TOL:
-                print(f"Establish warehouse at: {i}.")
+                feedback.pushInfo(f"Establish warehouse at: {i}.")
                 results.append(i)
 
         for v in prob.variables():
             if v.varValue>0:
-                print(v.name, "=", v.varValue)
+                feedback.pushInfo(f"{v.name} = {v.varValue}")
 
+        feedback.pushInfo(f"Create a new line layer")
         # create a new line layer
         customer_id = []
         facility_id = []
         values = []
         for v in prob.variables():
             if v.varValue>0 and v.name.startswith("Service"):
-                print(v.name, "=", v.varValue)
+                feedback.pushInfo(f"{v.name} = {v.varValue}")
                 customer_id.append(int(re.findall('\d+', v.name)[0]))
                 facility_id.append(int(re.findall('\d+', v.name)[1]))
                 values.append(v.varValue)
@@ -370,11 +375,11 @@ class SiteSelectionProcessingAlgorithm(QgsProcessingAlgorithm):
         df['geometry'] = gpd.GeoSeries.from_wkt(df['geometry'])
         return df
 
-    def convertToGeoPandas(self, layer):
+    def convertToGeoPandas(self, layer, feedback):
         try:
             if layer is not None:
                 gdf = gpd.GeoDataFrame(self.convertToPandas(layer), geometry='geometry')
                 gdf = gdf.set_crs(crs=layer.crs().toWkt())
                 return gdf
         except Exception as e:
-            print(e)
+            feedback.reportError(e.message)

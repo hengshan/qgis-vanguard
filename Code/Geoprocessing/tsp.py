@@ -25,7 +25,6 @@ from PyQt5.QtCore import QVariant
 
 # Networkx
 import networkx as nx
-from networkx.algorithms.approximation import traveling_salesman
 
 class TspProcessingAlgorithm(QgsProcessingAlgorithm):
     """
@@ -211,7 +210,7 @@ class TspProcessingAlgorithm(QgsProcessingAlgorithm):
             'DEFAULT_DIRECTION': 2,  # Both directions
             'DEFAULT_SPEED': 5,
             'DIRECTION_FIELD': '',
-            'ENTRY_COST_CALCULATION_METHOD': 0,  # Ellipsoidal
+            'ENTRY_COST_CALCULATION_METHOD': 1,  # planar
             'ID_FIELD': location_id_field,
             'INPUT': parameters['INPUT_NETWORK'],
             'POINTS': parameters['INPUT_LOCATIONS'],
@@ -223,9 +222,8 @@ class TspProcessingAlgorithm(QgsProcessingAlgorithm):
             'VALUE_FORWARD': '',
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['OdmatrixFromPointsAsCsvNn'] = processing.run('qneat3:OdMatrixFromPointsAsCsv', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-        results['OdmatrixFromPointsAsCsvNn'] = outputs['OdmatrixFromPointsAsCsvNn']['OUTPUT']
-        csv = QgsProcessingUtils.mapLayerFromString(results['OdmatrixFromPointsAsCsvNn'],context)
+        algresult = processing.run('qneat3:OdMatrixFromPointsAsCsv', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        csv = QgsProcessingUtils.mapLayerFromString(algresult['OUTPUT'],context)
         
         # create a networkx graph
         G = nx.Graph()
@@ -235,15 +233,24 @@ class TspProcessingAlgorithm(QgsProcessingAlgorithm):
 
         features = csv.getFeatures()
         for current, feature in enumerate(features):
-            #print(feature)
+            if (feature['total_cost'] == None) or (feature['total_cost'] == 0): 
+                feedback.pushInfo(f"origin_id is {feature['origin_id']}, destination_id is {feature['destination_id']}, cost is {feature['total_cost']}")
+                continue
             if (feature['origin_id'] != feature['destination_id']):
-                G.add_edge(str(feature['origin_id']), str(feature['destination_id']), weight=float(feature['network_cost']))
-                #print(str(feature['origin_id']), str(feature['destination_id']),str(feature['network_cost']))
+                G.add_edge(str(feature['origin_id']), str(feature['destination_id']), weight=float(feature['total_cost']))
         
+        feedback.pushInfo("method 1: simulated annealing")
+        path_sa = nx.approximation.simulated_annealing_tsp(G, "greedy")
+        cost_sa = sum(G[n][nbr]["weight"] for n, nbr in nx.utils.pairwise(path_sa))
+        feedback.pushCommandInfo(str(path_sa))
+        feedback.pushInfo("total cost of method 1 is: " + str(cost_sa))
         
-        cycle = traveling_salesman.simulated_annealing_tsp(G, "greedy")
-        cost = sum(G[n][nbr]["weight"] for n, nbr in nx.utils.pairwise(cycle))
-        print("total cost is: " + str(cost))
+        feedback.pushInfo("method 2: christofides")
+        tsp = nx.approximation.traveling_salesman_problem
+        path = tsp(G)
+        feedback.pushCommandInfo(str(path))
+        cost_tsp = sum(G[n][nbr]["weight"] for n, nbr in nx.utils.pairwise(path))
+        feedback.pushInfo("total cost of method 2 is: " + str(cost_tsp))
         
         # To run another Processing algorithm as part of this algorithm, you can use
         # processing.run(...). Make sure you pass the current context and feedback
@@ -251,11 +258,11 @@ class TspProcessingAlgorithm(QgsProcessingAlgorithm):
         # to the executed algorithm, and that the executed algorithm can send feedback
         # reports to the user (and correctly handle cancellation and progress reports!)
         featID = 0
-        for n, nbr in nx.utils.pairwise(cycle):
-            #print(n)
-            #print(nbr)
-            #print(G[n][nbr]["weight"])
-            
+        i = 0
+        for n, nbr in nx.utils.pairwise(path):
+            i += 1
+            feedback.setProgressText(f"processing {i} out of {len(path)-1} segments")
+
             #get point locations
             query_start = '"ID" = \''+ str(n) +'\''
             query_to = '"ID" = \''+ str(nbr) +'\''
@@ -271,7 +278,7 @@ class TspProcessingAlgorithm(QgsProcessingAlgorithm):
                 'DEFAULT_SPEED': 5,
                 'DIRECTION_FIELD': '',
                 'END_POINT': str(feat_to.geometry().asPoint().x()) +','+ str(feat_to.geometry().asPoint().y())+ ' [EPSG:3414]',
-                'ENTRY_COST_CALCULATION_METHOD': 0,  # Ellipsoidal
+                'ENTRY_COST_CALCULATION_METHOD': 1,  # planar
                 'INPUT': parameters['INPUT_NETWORK'],
                 'SPEED_FIELD': '',
                 'START_POINT': str(feat_start.geometry().asPoint().x()) +','+ str(feat_start.geometry().asPoint().y())+ ' [EPSG:3414]',
@@ -282,17 +289,16 @@ class TspProcessingAlgorithm(QgsProcessingAlgorithm):
                 'VALUE_FORWARD': '',
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
-            outputs['ShortestPathPointToPoint'] = processing.run('qneat3:shortestpathpointtopoint', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-            results['ShortestPathPointToPoint'] = outputs['ShortestPathPointToPoint']['OUTPUT']
-            #print(results['ShortestPathPointToPoint'])
-            layer = QgsProcessingUtils.mapLayerFromString(results['ShortestPathPointToPoint'],context)
+            algresult2 = processing.run('qneat3:shortestpathpointtopoint', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+            layer = QgsProcessingUtils.mapLayerFromString(algresult2['OUTPUT'],context)
             features = layer.getFeatures()
 
             # the shortest path between two points should be one polyline feature
-            # Note: there is only one feature here
+            # Note: there is only one feature here, thus featID = 0 is put outside of the if
+
             for _, feature in enumerate(features):
                 # Add a feature in the sink
-                featID+=1
+                featID +=1
                 feat = QgsFeature(fields)
                 feat.setAttributes([featID,str(n),str(nbr),G[n][nbr]["weight"]])
                 feat.setGeometry(feature.geometry())
